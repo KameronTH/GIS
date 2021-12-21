@@ -1,0 +1,115 @@
+# The goal of this script is to save the rough draft, hard coded values for a series of tools I'm working on to simplify GBIF data analysis. 
+# Revisions and updates will be made in the future.
+
+#import needed modules
+import arcpy
+from arcpy import env
+import os
+Default_Geodatabase = r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\Raccoons.gdb"
+env.workspace = Default_Geodatabase
+env.overwriteOutput = True
+
+# Tool to convert GBIF data from excel to geodatabase
+#Assign variables
+project_polygon = r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\Default.gdb\tl_2019_us_county_Project1"
+raw_GBIF_spreadsheet =r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\GBIF Data\roundedraccoons\0049496-210914110416597.csv"
+area_Interest = r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\Raccoons.gdb\cb_2018_us_ua10_500k_cities_Albers"
+overlay_raster = r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\Default.gdb"
+clip_Feature = r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\Raccoons.gdb\tl_2019_us_county_Project1"
+overlap_area = r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\Raccoons.gdb\tl_2019_us_county_Project1"
+outputJoin = "Joined_output" #Allow user input later
+
+#Tool to convert GBIF data from csv to feature
+GBIF_table = []
+GBIF_Geodatabase = []
+GBIF_Folder = r"C:\Users\Kameron\Desktop\ArcGIS\Projects\GBIFproject\GBIFproject\GBIF Data\TestSpreadsheets"
+file_extension = "\\"
+for filename in os.listdir(GBIF_Folder):
+    if filename.endswith(".csv"):
+        print(filename)
+        GBIF_table.append(GBIF_Folder + "\\" + filename)
+        GBIF_Geodatabase.append(Default_Geodatabase + "\\" + "PointData_" + filename)
+        continue
+    else:
+        continue
+print(GBIF_table)
+
+#Autoconvert GBIF Data from csv
+for file in GBIF_table:
+    if file == file.find("-1"):
+        new_file_name = file       
+        pass
+    else:
+        new_file_name = file.replace('-', '')
+        
+    rename = f"{new_file_name[:-4]}_XY"
+    
+for feature in GBIF_Geodatabase:
+    if feature == feature.find("-1"):
+        new_feature_name = feature       
+        pass
+    else:
+        new_feature_name = feature.replace('-', '')
+        rename_gdb = f"{new_feature_name[:-4]}_XY"
+    
+    print(rename_gdb)
+    #print(Default_Geodatabase + file_extension + "Point_Data_" + rename)
+    print(rename_gdb)
+    arcpy.management.XYTableToPoint(file, rename_gdb, "decimalLongitude","decimalLatitude") #outfeatureclass will be request for user rename
+    print(f"{rename_gdb} has been converted from a csv to a feature and is stored in the {Default_Geodatabase} folder.")
+    
+#Reproject and clip features within geodatabase
+#Data must be reprojected to the same coordinate system for analysis, so new projection is required. Wll do this based on if layers share similar coordinate system
+#Clipped data is not required so parameter will be optional
+#Will need to rename how layers are used for summarize within tool so that projected layers can be added without needing clipped.
+#In the future, script should execute based on layer metadata containing same spatial ref and not _projected.
+for feature in arcpy.ListFeatureClasses():
+    project_feature = f"{feature}_projected"
+
+    arcpy.management.Project(feature, project_feature, project_polygon,
+                             preserve_shape="PRESERVE_SHAPE") #Later make coord user input, using a feature
+    clipped_features = f"{project_feature}_clipped"
+    if clip_Feature == "":
+        pass
+    else:
+        arcpy.analysis.Clip(project_feature, clip_Feature, clipped_features)
+
+    print(f"The layer: {clip_Feature} was projected.")
+    
+    #Use near tool to analyze how close or far incidents are to an area of interest
+near_area = area_Interest + r"_projected_clipped" #Will nake yser input
+print(type(near_area))
+print(near_area)
+Union_incidents = []
+outFeature = ""
+for point in arcpy.ListFeatureClasses(wild_card= "*projected",feature_type="Point"):
+    print(f"The wildcard made this {point}")
+    arcpy.analysis.Near(point, near_area)
+
+# If an overlay layer is given, Make copy of interest area and add field to distingush area forcombined layer
+
+if overlap_area == r"":
+    # Make code to group into interest areas
+    print("The if statement was triggered.")
+    arcpy.analysis.SummarizeWithin(area_Interest, point, outputJoin, keep_all_polygons="KEEP_ALL")
+else:
+    copy_interest_area = area_Interest + "_copy"
+    arcpy.management.CopyFeatures(area_Interest, copy_interest_area)
+    arcpy.management.AddField(copy_interest_area, "AreaType", "TEXT")
+
+    #Will erase value of overlap area
+    layer_with_holes = "Union_Layer"
+    Fill_holes_layer = overlap_area #+ "_projected_clipped"
+    arcpy.analysis.PairwiseErase(Fill_holes_layer, area_Interest, layer_with_holes)
+
+    #Make union of area of interest and overlap area
+
+    inFeature = [[layer_with_holes,0], [area_Interest,1]]
+    outFeature = f"{point}_Filled_Layer"
+    arcpy.analysis.Union(inFeature, outFeature)
+    #Perform summarize within for the product of union and incidents
+    Union_incidents = Fill_holes_layer + "_FinalOutput"
+ #May be more appropiate to use Spatial Join to retain GBIF data, but would make attribute table more cluttered.
+ for point in arcpy.ListFeatureClasses(wild_card= "*clipped",feature_type="Point"):
+    arcpy.analysis.SummarizeWithin(outFeature, point, point + "_Final_Output")
+    print(point)
