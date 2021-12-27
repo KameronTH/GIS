@@ -16,12 +16,12 @@ env.overwriteOutput = True
 #And part 2 which conducts the spatial joins for the features in question.
 
 #Assign variables for user input
-raw_GBIF_spreadsheet =arcpy.GetParameterAsText(1)
-clip_Feature_class = arcpy.GetParameterAsText(2)
-projection = arcpy.GetParameterAsText(3)
-area_Interest = arcpy.GetParameterAsText(4)
-overlap_area = arcpy.GetParameterAsText(5)
-Incident_Folder = arcpy.GetParameterAsText(6)
+#raw_GBIF_spreadsheet =arcpy.GetParameterAsText(1)
+clip_Feature_class = arcpy.GetParameterAsText(1)
+projection = arcpy.GetParameterAsText(2)
+area_Interest = arcpy.GetParameterAsText(3)
+overlap_area = arcpy.GetParameterAsText(4)
+Incident_Folder = arcpy.GetParameterAsText(5)
 
 def GBIF_conversion(Default_Geodatabase, Incident_Folder,clip_Feature="",projection=""): #Projection is mandatory parameter but is last because of function order
     # This function converts simple csv files from GBIF to feature classes and stores them within an assigned geodatabase
