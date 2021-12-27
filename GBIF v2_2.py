@@ -6,6 +6,8 @@
 #For projection, use a layer that contains desired projection data This will convert the projections of files within the target geodatabase
 #area_Interest is the required polygon features for analysis. This parameter should be smaller than the feature class for overlap_area
 #For overlap_area, assign a layer that is larger than the area_Interest parameter. These layers will be compared
+
+#NOTE, polygon layers that are used for the area_Incident and overlap area need to be the same projection as the layer assigned to the projection variable. This can be done manually, or by running the feature_proj_clip() module seperately
 import arcpy
 import os
 from arcpy import env
