@@ -44,28 +44,31 @@ def GBIF_conversion(Default_Geodatabase, Incident_Folder,clip_Feature="",project
 
     # Autoconvert GBIF Data from csv
     for file in GBIF_table:
-        if file == file.find("-1"):
-            new_file_name = file
-            pass
-        else:
-            new_file_name = file.replace('-', '')
-
-        rename = f"{new_file_name[:-4]}_XY"
-
-    for feature in GBIF_Geodatabase:
-        if feature == feature.find("-1"):
-            new_feature_name = feature
+        test_hyphen = file.find("-")
+        if test_hyphen == -1:
+            base_name = os.path.basename(file)
+            new_feature_name = base_name
             rename_gdb = f"{new_feature_name[:-4]}_XY"
+            print(file)
+            print(base_name)
+            print(f"Regular path: {rename_gdb}")
+            print(f"Geodatabase path: {rename_gdb}")
+            arcpy.management.XYTableToPoint(file, rename_gdb, "decimalLongitude",
+                                            "decimalLatitude")
 
         else:
-            new_feature_name = feature.replace('-', '')
+            base_name = os.path.basename(file)
+            new_feature_name = base_name.replace('-', '')
             rename_gdb = f"{new_feature_name[:-4]}_XY"
+            print(file)
+            print(base_name)
+            print(f"Regular path: {rename_gdb}")
+            print(f"Geodatabase path: {rename_gdb}")
+            arcpy.management.XYTableToPoint(file, rename_gdb, "decimalLongitude",
+                                            "decimalLatitude")
 
-
-        arcpy.management.XYTableToPoint(file, rename_gdb, "decimalLongitude",
-                                        "decimalLatitude")
-        print(
-            f"{rename_gdb} has been converted from a csv to a feature and is stored in the {Default_Geodatabase} folder.")
+    print(
+        f"{rename_gdb} has been converted from a csv to a feature and is stored in the {Default_Geodatabase} folder.")
 
     # Elif statements are to prevent duplicating geoprocessing operations
     for feature in arcpy.ListFeatureClasses("*_XY"):
@@ -93,7 +96,7 @@ def GBIF_conversion(Default_Geodatabase, Incident_Folder,clip_Feature="",project
 
     print(GBIF_table)
     print(GBIF_Geodatabase)
-GBIF_conversion(Default_Geodatabase, Incident_Folder,clip_Feature=clip_Feature_class,projection=projection)
+GBIF_conversion(Default_Geodatabase,Incident_Folder,clip_Feature=clip_Feature_class,projection=projection)
 
 def feature_proj_clip(Default_Geodatabase,projection,clip_Feature=""):
 #Reoccuring variables
